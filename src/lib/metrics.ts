@@ -16,6 +16,7 @@ function unique<T>(arr: T[]): T[] {
 
 export function getDefaultPaPackTemplate(templates: Template[]): Template | undefined {
   return (
+    templates.find((t) => t.id === 'tmpl-auth-pa-pack-psychiatry-spravato-commercial') ??
     templates.find((t) => t.id === 'tmpl-auth-pa-pack-standard') ??
     templates.find((t) => t.category === 'Authorization templates')
   );

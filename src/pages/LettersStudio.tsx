@@ -5,13 +5,14 @@ import type { DocumentKind, Template } from '../lib/schema';
 import { MarkdownEditor } from '../components/editor/MarkdownEditor';
 import { v4 as uuidv4 } from 'uuid';
 
-type LetterType = 'referral' | 'sick_note' | 'disability' | 'pa_support';
+type LetterType = 'referral' | 'sick_note' | 'disability' | 'pa_support' | 'avs_patient';
 
 const LETTER_KIND: Record<LetterType, DocumentKind> = {
   referral: 'referral_letter',
   sick_note: 'sick_note',
   disability: 'disability_letter',
   pa_support: 'pa_support_letter',
+  avs_patient: 'avs',
 };
 
 function stripMarkdown(md: string): string {
@@ -49,6 +50,11 @@ export const LettersStudio: React.FC = () => {
     [templates],
   );
 
+  const avsTemplates = useMemo(
+    () => templates.filter((t) => t.category === 'AVS templates'),
+    [templates],
+  );
+
   const defaultTemplateId = useMemo(() => {
     // Heuristic: pick matching built-in templates if present
     const byType: Record<LetterType, string> = {
@@ -56,10 +62,12 @@ export const LettersStudio: React.FC = () => {
       sick_note: 'tmpl-letters-sick-note',
       disability: 'tmpl-letters-disability',
       pa_support: 'tmpl-letters-pa-support',
+      avs_patient: 'tmpl-avs-standard',
     };
     const id = byType[letterType];
-    return letterTemplates.some((t) => t.id === id) ? id : (letterTemplates[0]?.id ?? '');
-  }, [letterType, letterTemplates]);
+    const list = letterType === 'avs_patient' ? avsTemplates : letterTemplates;
+    return list.some((t) => t.id === id) ? id : (list[0]?.id ?? '');
+  }, [letterType, letterTemplates, avsTemplates]);
 
   const [templateId, setTemplateId] = useState<string>(defaultTemplateId);
   React.useEffect(() => setTemplateId(defaultTemplateId), [defaultTemplateId]);
@@ -132,7 +140,9 @@ export const LettersStudio: React.FC = () => {
       return;
     }
 
-    const tpl = templates.find((t) => t.id === templateId) ?? letterTemplates[0];
+    const tpl =
+      templates.find((t) => t.id === templateId) ??
+      (letterType === 'avs_patient' ? avsTemplates[0] : letterTemplates[0]);
     if (!tpl) return;
 
     const id = freeDocId || uuidv4();
@@ -230,6 +240,7 @@ export const LettersStudio: React.FC = () => {
               <option value="sick_note">Sick Note</option>
               <option value="disability">Disability / Accommodation Letter</option>
               <option value="pa_support">Prior Auth Support Letter</option>
+              <option value="avs_patient">Patient-facing AVS（患者版说明）</option>
             </select>
           </div>
 
@@ -261,7 +272,7 @@ export const LettersStudio: React.FC = () => {
               value={templateId}
               onChange={(e) => setTemplateId(e.target.value)}
             >
-              {letterTemplates.map((t) => (
+              {(letterType === 'avs_patient' ? avsTemplates : letterTemplates).map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.name}
                 </option>

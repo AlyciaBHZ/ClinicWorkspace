@@ -54,6 +54,14 @@ export interface CaseCard {
   priorTreatments: PriorTreatment[];
   severity?: string; // scale / severity measure
   riskFactors: RiskFactorKey[];
+  riskFactorNotes?: Partial<Record<RiskFactorKey, string>>;
+
+  // Optional clinical/admin narrative fields (still de-identified)
+  visitDate?: string; // YYYY-MM-DD
+  mseSummary?: string; // Mental Status Exam key points
+  functionalImpairment?: string;
+  monitoringPlan?: string; // e.g., REMS / observation plan
+  payerReferenceNumber?: string;
 
   payer?: PayerInfo;
   attachments: AttachmentPlaceholder[];

@@ -328,6 +328,50 @@
     "tags": ["documentation", "QA", "checklist"],
     "specialty": "General",
     "strengthLevel": "Consensus"
+  },
+  {
+    "id": "ev-spravato-001",
+    "title": "FDA label summary (mock): Esketamine indication for TRD and required monitoring",
+    "snippet": "Mock label summary: Esketamine nasal spray is indicated for TRD under supervised administration with post-dose observation and safety monitoring per clinic protocol.",
+    "sourceName": "FDA Label Summary (Mock)",
+    "year": 2025,
+    "urlPlaceholder": "url:mock://evidence/ev-spravato-001",
+    "tags": ["esketamine", "spravato", "TRD", "label", "monitoring"],
+    "specialty": "Psychiatry",
+    "strengthLevel": "Consensus"
+  },
+  {
+    "id": "ev-spravato-002",
+    "title": "Guideline snippet (mock): TRD definition and adequate trial criteria",
+    "snippet": "Mock guideline: TRD may be defined by non-response to multiple adequate antidepressant trials with persistent functional impairment and validated severity scores.",
+    "sourceName": "Clinical Guideline (Mock)",
+    "year": 2024,
+    "urlPlaceholder": "url:mock://evidence/ev-spravato-002",
+    "tags": ["TRD", "guideline", "adequate trial", "documentation"],
+    "specialty": "Psychiatry",
+    "strengthLevel": "Consensus"
+  },
+  {
+    "id": "ev-spravato-003",
+    "title": "Efficacy evidence (mock): Esketamine outcomes in TRD",
+    "snippet": "Mock evidence: RCT and real-world summaries demonstrate clinically meaningful symptom improvement in TRD with appropriate induction/maintenance and monitoring.",
+    "sourceName": "Efficacy Summary (Mock)",
+    "year": 2023,
+    "urlPlaceholder": "url:mock://evidence/ev-spravato-003",
+    "tags": ["esketamine", "TRD", "efficacy", "outcomes"],
+    "specialty": "Psychiatry",
+    "strengthLevel": "High"
+  },
+  {
+    "id": "ev-spravato-004",
+    "title": "Safety & REMS-style notes (mock): observation workflow and risk mitigation",
+    "snippet": "Mock safety notes: Clinic-based observation and post-dose monitoring with documented safety planning and follow-up reduce avoidable risk and support payer requirements.",
+    "sourceName": "Safety / REMS Notes (Mock)",
+    "year": 2024,
+    "urlPlaceholder": "url:mock://evidence/ev-spravato-004",
+    "tags": ["safety", "REMS", "monitoring", "risk"],
+    "specialty": "Psychiatry",
+    "strengthLevel": "Consensus"
   }
 ]
 

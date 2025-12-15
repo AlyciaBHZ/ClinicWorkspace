@@ -52,8 +52,8 @@ export const AuthSuite: React.FC = () => {
     [authTemplates],
   );
 
-  const [paTemplateId, setPaTemplateId] = useState<string>('tmpl-auth-pa-pack-standard');
-  const [appealTemplateId, setAppealTemplateId] = useState<string>('tmpl-auth-appeal-formal-generic');
+  const [paTemplateId, setPaTemplateId] = useState<string>('tmpl-auth-pa-pack-psychiatry-spravato-commercial');
+  const [appealTemplateId, setAppealTemplateId] = useState<string>('tmpl-auth-appeal-aetna-formal');
   const [activeDragCaseId, setActiveDragCaseId] = useState<string | null>(null);
 
   useEffect(() => {

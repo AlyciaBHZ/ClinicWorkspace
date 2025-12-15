@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { 
   LayoutDashboard, FileText, ShieldCheck, Mail, Stethoscope, 
   Search, Library, History, Settings, Activity 
@@ -46,10 +46,10 @@ export const Layout = () => {
       {/* Sidebar */}
       <aside className="w-64 bg-white border-r border-slate-200 flex flex-col no-print">
         <div className="p-6 border-b border-slate-100">
-          <div className="flex items-center gap-2 text-brand-600">
+          <Link to="/" className="flex items-center gap-2 text-brand-600 hover:opacity-90" title="返回 Dashboard">
             <Activity className="w-8 h-8" />
             <span className="text-xl font-bold tracking-tight">Clinic<span className="text-slate-900">Workspace</span></span>
-          </div>
+          </Link>
           <div className="mt-2 text-xs font-semibold text-slate-500 uppercase tracking-wider">
             {settings.userRole} View
           </div>

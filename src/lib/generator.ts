@@ -36,7 +36,13 @@ function formatPriorTreatments(c: CaseCard): string {
 
 function formatRiskFactors(c: CaseCard): string {
   if (!c.riskFactors?.length) return 'No specific high-risk factors recorded in this de-identified case card.';
-  return c.riskFactors.map((k) => `- ${RISK_FACTOR_LABELS[k] ?? k}`).join('\n');
+  return c.riskFactors
+    .map((k) => {
+      const label = RISK_FACTOR_LABELS[k] ?? k;
+      const note = c.riskFactorNotes?.[k];
+      return note && note.trim() ? `- ${label}: ${note.trim()}` : `- ${label}`;
+    })
+    .join('\n');
 }
 
 function buildCitations(caseId: string | undefined, evidencePins: EvidenceItem[]): { citations: DocumentCitation[]; footnotesMd: string } {
@@ -110,7 +116,11 @@ function medicalNecessityRationale(c: CaseCard): string {
     : `Prior therapy history is incomplete; please document prior trials and outcomes.`;
   return [
     `The requested therapy (**${c.serviceOrDrug || '[SERVICE/DRUG]'}**) is indicated for **${c.diagnosis || '[DIAGNOSIS]'}** in the context of the patient’s clinical course.`,
+    c.visitDate ? `Encounter date (de-identified): **${c.visitDate}**.` : 'Encounter date: **[ADD VISIT DATE]**.',
     severity,
+    c.functionalImpairment?.trim()
+      ? `Functional impairment: ${c.functionalImpairment.trim()}`
+      : 'Functional impairment: **[ADD FUNCTIONAL IMPAIRMENT]**.',
     prior,
     `The goal is to reduce symptom burden, improve function, and prevent clinical deterioration.`,
   ].join('\n\n');
@@ -136,6 +146,15 @@ export function generatePaPack(
     dosage: c.dosage,
     frequency: c.frequency,
     duration: c.duration,
+    severity: c.severity?.trim() ? c.severity.trim() : '[ADD SEVERITY]',
+    visitDate: c.visitDate?.trim() ? c.visitDate.trim() : '[ADD VISIT DATE]',
+    functionalImpairment: c.functionalImpairment?.trim()
+      ? c.functionalImpairment.trim()
+      : '[ADD FUNCTIONAL IMPAIRMENT]',
+    mseSummary: c.mseSummary?.trim() ? c.mseSummary.trim() : '[ADD MSE SUMMARY]',
+    monitoringPlan: c.monitoringPlan?.trim()
+      ? c.monitoringPlan.trim()
+      : '[ADD MONITORING PLAN]',
     medicalNecessityRationale: medicalNecessityRationale(c),
     priorTreatmentSection: formatPriorTreatments(c),
     riskSafetySection: formatRiskFactors(c),
@@ -179,6 +198,15 @@ export function generateAppealLetter(
     dosage: c.dosage,
     frequency: c.frequency,
     duration: c.duration,
+    severity: c.severity?.trim() ? c.severity.trim() : '[ADD SEVERITY]',
+    visitDate: c.visitDate?.trim() ? c.visitDate.trim() : '[ADD VISIT DATE]',
+    functionalImpairment: c.functionalImpairment?.trim()
+      ? c.functionalImpairment.trim()
+      : '[ADD FUNCTIONAL IMPAIRMENT]',
+    mseSummary: c.mseSummary?.trim() ? c.mseSummary.trim() : '[ADD MSE SUMMARY]',
+    monitoringPlan: c.monitoringPlan?.trim()
+      ? c.monitoringPlan.trim()
+      : '[ADD MONITORING PLAN]',
     payerName: c.payer?.payerName ?? '[PAYER_NAME]',
     planType: c.payer?.planType ?? '',
     denialReasonCode: c.payer?.denialReasonCode ?? '',
@@ -218,6 +246,7 @@ export function generateSoapNote(
     dosage: c.dosage,
     frequency: c.frequency,
     duration: c.duration,
+    severity: c.severity?.trim() ? c.severity.trim() : '[ADD SEVERITY]',
     subjective: transcript?.trim()
       ? `Transcript summary (pasted):\n\n> ${transcript.trim()}`
       : '_No transcript provided._',
@@ -251,6 +280,9 @@ export function generateAvs(
     dosage: c.dosage,
     frequency: c.frequency,
     duration: c.duration,
+    monitoringPlan: c.monitoringPlan?.trim()
+      ? c.monitoringPlan.trim()
+      : 'Monitoring plan to be confirmed by clinician.',
     patientSafetyNotes:
       'If you experience worsening symptoms or safety concerns, contact your clinician or seek urgent care according to your local policy.',
     nextSteps: transcript?.trim()

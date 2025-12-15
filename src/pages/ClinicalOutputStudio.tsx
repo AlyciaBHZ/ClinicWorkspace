@@ -3,6 +3,7 @@ import { Copy, Download, Save } from 'lucide-react';
 import { useStore } from '../lib/store';
 import type { DocumentKind, CaseCard } from '../lib/schema';
 import { MarkdownEditor } from '../components/editor/MarkdownEditor';
+import { useSearchParams } from 'react-router-dom';
 
 type ClinicalType = 'soap' | 'hpi' | 'avs';
 
@@ -47,10 +48,19 @@ export const ClinicalOutputStudio: React.FC = () => {
     log,
   } = useStore();
 
+  const [params] = useSearchParams();
+  const deepCaseId = params.get('caseId') ?? '';
+
   const [clinicalType, setClinicalType] = useState<ClinicalType>('soap');
   const [selectedCaseId, setSelectedCaseId] = useState<string>(cases[0]?.id ?? '');
   const [transcript, setTranscript] = useState<string>('');
   const activeCase = getCaseById(selectedCaseId);
+
+  React.useEffect(() => {
+    if (deepCaseId && cases.some((c) => c.id === deepCaseId)) {
+      setSelectedCaseId(deepCaseId);
+    }
+  }, [deepCaseId, cases]);
 
   const kind = CLINICAL_KIND[clinicalType];
   const doc = activeCase ? getDocumentForCase(activeCase.id, kind) : undefined;

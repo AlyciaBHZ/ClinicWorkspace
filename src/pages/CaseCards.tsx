@@ -29,6 +29,12 @@ function makeBlankDraft(): EditableCase {
     priorTreatments: [],
     severity: '',
     riskFactors: [],
+    riskFactorNotes: {},
+    visitDate: '',
+    mseSummary: '',
+    functionalImpairment: '',
+    monitoringPlan: '',
+    payerReferenceNumber: '',
     payer: undefined,
     attachments: [],
     status: 'draft',
@@ -166,6 +172,78 @@ const CaseModal: React.FC<{
                       </label>
                     );
                   })}
+                </div>
+                <div className="mt-3 space-y-2">
+                  {draft.riskFactors.map((k) => (
+                    <div key={k}>
+                      <div className="text-xs text-slate-600 mb-1">Note: {RISK_FACTOR_LABELS[k]}</div>
+                      <input
+                        className="w-full p-2 border rounded-md text-sm"
+                        value={draft.riskFactorNotes?.[k] ?? ''}
+                        onChange={(e) =>
+                          setDraft((d) => ({
+                            ...d,
+                            riskFactorNotes: { ...(d.riskFactorNotes ?? {}), [k]: e.target.value },
+                          }))
+                        }
+                        placeholder="Optional context (no PHI)"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-white border border-slate-200 rounded-lg p-3">
+                <div className="text-xs font-semibold text-slate-500 uppercase mb-2">Clinical narrative (recommended)</div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs text-slate-600 mb-1">Visit date (YYYY-MM-DD)</label>
+                    <input
+                      className="w-full p-2 border rounded-md text-sm"
+                      value={draft.visitDate ?? ''}
+                      onChange={(e) => setDraft((d) => ({ ...d, visitDate: e.target.value }))}
+                      placeholder="2025-12-10"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-slate-600 mb-1">Payer reference # (optional)</label>
+                    <input
+                      className="w-full p-2 border rounded-md text-sm"
+                      value={draft.payerReferenceNumber ?? ''}
+                      onChange={(e) => setDraft((d) => ({ ...d, payerReferenceNumber: e.target.value }))}
+                      placeholder="Portal ref # (no PHI)"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-xs text-slate-600 mb-1">Functional impairment</label>
+                    <textarea
+                      className="w-full p-2 border rounded-md text-sm"
+                      rows={2}
+                      value={draft.functionalImpairment ?? ''}
+                      onChange={(e) => setDraft((d) => ({ ...d, functionalImpairment: e.target.value }))}
+                      placeholder="Describe functional impact (work/school/ADLs) without identifiers"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-xs text-slate-600 mb-1">MSE summary</label>
+                    <textarea
+                      className="w-full p-2 border rounded-md text-sm"
+                      rows={2}
+                      value={draft.mseSummary ?? ''}
+                      onChange={(e) => setDraft((d) => ({ ...d, mseSummary: e.target.value }))}
+                      placeholder="Key MSE points (de-identified)"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block text-xs text-slate-600 mb-1">Monitoring / REMS-style plan</label>
+                    <textarea
+                      className="w-full p-2 border rounded-md text-sm"
+                      rows={3}
+                      value={draft.monitoringPlan ?? ''}
+                      onChange={(e) => setDraft((d) => ({ ...d, monitoringPlan: e.target.value }))}
+                      placeholder="Observation, vitals, safety plan, follow-up timing (no PHI)"
+                    />
+                  </div>
                 </div>
               </div>
 

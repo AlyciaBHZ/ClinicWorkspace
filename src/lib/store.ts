@@ -79,6 +79,7 @@ interface AppState {
 
   // Data management
   seedDemoData: () => void;
+  seedUserCaseSpravatoTrdDenied: () => string;
   clearAllLocalData: () => void;
   exportAllData: () => LocalDataExport;
   importAllData: (data: LocalDataExport) => void;
@@ -102,6 +103,12 @@ function blankCase(): CaseCard {
     priorTreatments: [],
     severity: '',
     riskFactors: [],
+    riskFactorNotes: {},
+    visitDate: '',
+    mseSummary: '',
+    functionalImpairment: '',
+    monitoringPlan: '',
+    payerReferenceNumber: '',
     payer: undefined,
     attachments: [],
     status: 'draft',
@@ -536,6 +543,73 @@ export const useStore = create<AppState>()(
           entityType: 'System',
           summary: `Seeded demo data (3 cases): ${case1Id}, ${case2Id}, ${case3Id}`,
         });
+      },
+
+      seedUserCaseSpravatoTrdDenied: () => {
+        // Avoid duplicates by matching service + payer + TRD
+        const existing = get().cases.find(
+          (c) =>
+            !c.archivedAt &&
+            c.serviceOrDrug.toLowerCase().includes('spravato') &&
+            (c.payer?.payerName ?? '').toLowerCase() === 'aetna' &&
+            c.diagnosis.toLowerCase().includes('treatment-resistant'),
+        );
+        if (existing) return existing.id;
+
+        const baseNow = now();
+        const caseId = get().createCase({
+          specialty: 'Psychiatry',
+          diagnosis: 'Major Depressive Disorder, recurrent. Treatment-resistant depression',
+          serviceOrDrug: 'Spravato (esketamine) nasal spray',
+          dosage: '56 mg induction; may increase to 84 mg per protocol',
+          frequency: '2x weekly induction; then weekly/biweekly maintenance',
+          duration: '12 weeks initial authorization requested',
+          visitDate: '2025-12-10',
+          severity: 'PHQ-9 = 21 (severe), documented on 2025-12-10',
+          functionalImpairment:
+            'Persistent severe depressive symptoms with functional impairment despite multiple adequate pharmacologic trials and structured psychotherapy.',
+          monitoringPlan:
+            'Clinic will administer under supervised setting with post-dose observation, vital sign monitoring, and safety plan reinforcement; follow-up scheduled per protocol.',
+          mseSummary:
+            'Affect constricted; mood depressed; thought process linear; passive SI without plan; insight/judgment fair (demo summary).',
+          riskFactors: ['suicidality', 'hospitalizationHistory', 'comorbidities'],
+          riskFactorNotes: {
+            suicidality: 'Passive SI without plan. Safety plan in place.',
+            hospitalizationHistory: '1 prior inpatient stay in 2024 for severe depression.',
+            comorbidities: 'Generalized anxiety disorder.',
+            substanceUse: 'Denies active substance use disorder.',
+          },
+          priorTreatments: [
+            { id: uuidv4(), name: 'Sertraline 200mg (12 weeks)', outcome: 'ineffective', note: 'Adequate trial; ineffective.' },
+            { id: uuidv4(), name: 'Escitalopram 20mg (10 weeks)', outcome: 'ineffective', note: 'Adequate trial; ineffective.' },
+            { id: uuidv4(), name: 'Venlafaxine XR 225mg (8 weeks)', outcome: 'ineffective', note: 'Adequate trial; ineffective.' },
+            { id: uuidv4(), name: 'Bupropion XL 300mg augmentation (6 weeks)', outcome: 'ineffective', note: 'Partial then plateau.' },
+            { id: uuidv4(), name: 'Aripiprazole 5mg augmentation (4 weeks)', outcome: 'intolerant', note: 'Akathisia.' },
+            { id: uuidv4(), name: 'Structured psychotherapy CBT (weekly x12)', outcome: 'ineffective', note: 'Insufficient response.' },
+          ],
+          payer: {
+            payerName: 'Aetna',
+            planType: 'PPO',
+            denialReasonCode: 'PA-TRD-001',
+            denialText:
+              'Not medically necessary. Insufficient documentation of TRD criteria and failed trials. Missing severity scale and treatment history details.',
+          },
+          payerReferenceNumber: '',
+          attachments: [
+            { id: uuidv4(), label: 'PHQ-9 form 2025-12-10 (placeholder)', addedAt: baseNow },
+            { id: uuidv4(), label: 'Medication history summary (placeholder)', addedAt: baseNow },
+            { id: uuidv4(), label: 'Denial notice screenshot / reference # (placeholder)', addedAt: baseNow },
+          ],
+          status: 'denied',
+          pinnedEvidenceIds: ['ev-spravato-001', 'ev-spravato-002', 'ev-spravato-003', 'ev-spravato-004'],
+        });
+
+        get().log({
+          actionType: 'create',
+          entityType: 'System',
+          summary: `Seeded user case: Spravato TRD denied (Aetna) — ${caseId}`,
+        });
+        return caseId;
       },
 
       clearAllLocalData: () => {

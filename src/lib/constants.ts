@@ -39,8 +39,16 @@ Requesting prior authorization for **{{serviceOrDrug}}** for **{{diagnosis}}**.
 # Prior Treatment Failures / Intolerance
 {{priorTreatmentSection}}
 
+# Severity & Functional Impairment
+{{severity}}
+
+{{functionalImpairment}}
+
 # Safety / Risk Considerations
 {{riskSafetySection}}
+
+# Monitoring / Clinic Capability
+{{monitoringPlan}}
 
 # Requested Service/Drug Details
 - Requested: {{serviceOrDrug}}
@@ -49,6 +57,60 @@ Requesting prior authorization for **{{serviceOrDrug}}** for **{{diagnosis}}**.
 - Duration: {{duration}}
 
 # Next Steps + Missing Info Checklist
+{{missingInfoChecklist}}
+
+---
+## References
+{{footnotes}}`,
+    createdAt: now(),
+    updatedAt: now(),
+  },
+  {
+    id: 'tmpl-auth-pa-pack-psychiatry-spravato-commercial',
+    name: 'PA Evidence Pack — Psychiatry · Spravato · Commercial Payer',
+    category: 'Authorization templates',
+    specialty: 'Psychiatry',
+    payer: 'Aetna',
+    description: 'Tailored Spravato/TRD pack emphasizing TRD criteria, failed trials, PHQ-9 severity, and monitoring/REMS-style workflow.',
+    tone: 'formal',
+    requiredFields: [
+      'diagnosis',
+      'serviceOrDrug',
+      'dosage',
+      'frequency',
+      'duration',
+      'priorTreatments',
+      'severity',
+      'visitDate',
+      'functionalImpairment',
+      'monitoringPlan',
+    ],
+    content: `# Executive Summary
+This request is for **{{serviceOrDrug}}** for **{{diagnosis}}**. The clinical record supports **treatment-resistant depression (TRD)** with multiple adequate trials and persistent severe symptoms.
+
+## TRD Criteria & Treatment History (Structured Summary)
+{{priorTreatmentSection}}
+
+## Severity & Functional Impairment
+- PHQ-9 / scale: {{severity}}
+- Functional impairment: {{functionalImpairment}}
+- Encounter date: {{visitDate}}
+
+## Medical Necessity Rationale
+{{medicalNecessityRationale}}
+
+## Safety / Risk Considerations
+{{riskSafetySection}}
+
+## Monitoring / REMS-style Plan
+{{monitoringPlan}}
+
+## Requested Therapy Details
+- Dose: {{dosage}}
+- Frequency: {{frequency}}
+- Duration requested: {{duration}}
+
+## Next Steps + Missing Info Checklist
 {{missingInfoChecklist}}
 
 ---
@@ -89,6 +151,59 @@ I am writing to appeal the denial of coverage for **{{serviceOrDrug}}** for the 
 
 ## Conclusion
 Given the patient’s clinical presentation and treatment history, **{{serviceOrDrug}}** is medically necessary. Please reconsider and approve this request.
+
+---
+## References
+{{footnotes}}`,
+    createdAt: now(),
+    updatedAt: now(),
+  },
+  {
+    id: 'tmpl-auth-appeal-aetna-formal',
+    name: 'Appeal Letter — Aetna style · Formal',
+    category: 'Authorization templates',
+    specialty: 'Psychiatry',
+    payer: 'Aetna',
+    description: 'Formal Aetna-style appeal emphasizing TRD criteria, failed trials, PHQ-9, and monitoring plan; references denial code/text.',
+    tone: 'formal',
+    requiredFields: [
+      'payer.payerName',
+      'payer.planType',
+      'payer.denialReasonCode',
+      'payer.denialText',
+      'diagnosis',
+      'serviceOrDrug',
+      'priorTreatments',
+      'severity',
+      'monitoringPlan',
+    ],
+    content: `# RE: Appeal of Denial — {{serviceOrDrug}}
+**Payer**: {{payerName}} {{planType}}
+**Denial code**: {{denialReasonCode}}
+
+To Whom It May Concern,
+
+I am appealing the denial of coverage for **{{serviceOrDrug}}** for **{{diagnosis}}**. The denial states: "{{denialText}}".
+
+## Summary
+The patient meets TRD criteria with multiple adequate trials and persistent severe symptoms (**{{severity}}**). This appeal provides structured treatment history, severity documentation, and a monitoring plan.
+
+## Prior Treatment History (Failed / Intolerant)
+{{priorTreatmentSection}}
+
+## Medical Necessity
+{{medicalNecessityRationale}}
+
+## Safety & Monitoring
+- Risk factors: {{riskSafetySection}}
+- Monitoring plan: {{monitoringPlan}}
+
+## Requested Therapy Details
+- Dose: {{dosage}}
+- Frequency: {{frequency}}
+- Duration: {{duration}}
+
+Thank you for your prompt reconsideration.
 
 ---
 ## References
@@ -183,6 +298,36 @@ Requesting authorization for **{{serviceOrDrug}}** for **{{diagnosis}}**.
 ---
 ## References
 {{footnotes}}`,
+    createdAt: now(),
+    updatedAt: now(),
+  },
+  {
+    id: 'tmpl-letters-patient-treatment-summary',
+    name: 'Patient-facing Treatment Summary (Spravato / Prior Auth)',
+    category: 'Letters templates',
+    specialty: 'Psychiatry',
+    description: 'Plain-language patient-facing summary for what Spravato is, why PA is needed, timeline, and day-of-visit monitoring notes.',
+    tone: 'neutral',
+    requiredFields: ['serviceOrDrug', 'duration', 'monitoringPlan'],
+    content: `# Patient-facing Treatment Summary (Draft)
+
+## What this treatment is
+We discussed **{{serviceOrDrug}}** and why it may help with your condition.
+
+## Why prior authorization is needed
+Some insurance plans require approval before covering this treatment. Our clinic will submit a complete packet and follow up with the payer.
+
+## Expected timeline & next steps
+- We submitted/are preparing documents for insurance review.
+- Typical timelines vary; we will update you when we hear back.
+- If insurance requests more information, we may need additional forms or a brief follow-up.
+
+## Monitoring and day-of-visit instructions
+{{monitoringPlan}}
+
+## Questions or safety concerns
+If your symptoms worsen or you have safety concerns, contact your clinic or seek urgent care per local guidance.
+`,
     createdAt: now(),
     updatedAt: now(),
   },

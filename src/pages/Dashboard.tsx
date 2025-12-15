@@ -17,7 +17,7 @@ const StatCard = ({ label, value, icon: Icon, color }: any) => (
 );
 
 export const Dashboard = () => {
-  const { cases, auditLog, seedDemoData, clearAllLocalData, templates } = useStore();
+  const { cases, auditLog, seedDemoData, seedUserCaseSpravatoTrdDenied, clearAllLocalData, templates, setSettings } = useStore();
 
   const activeCases = cases.filter((c) => !c.archivedAt);
   const pending = activeCases.filter(c => c.status === 'in_progress' || c.status === 'draft').length;
@@ -64,6 +64,59 @@ export const Dashboard = () => {
               <Link to="/evidence" className="inline-flex items-center gap-2 px-4 py-2 border border-slate-300 rounded-md text-sm font-semibold hover:bg-slate-50">
                 打开证据检索与 Pin 引用 <ArrowRight className="w-4 h-4" />
               </Link>
+            </div>
+          </div>
+
+          <div className="w-full max-w-sm bg-slate-50 border border-slate-200 rounded-xl p-4">
+            <div className="text-sm font-semibold text-slate-900">演示脚本（Spravato TRD 拒付申诉）</div>
+            <div className="text-xs text-slate-600 mt-2 leading-relaxed">
+              按照你提供的完整 User Case：Case Card → Evidence Pin → PA Pack → Appeal + 版本 → Clinical QA → Kanban 状态 → Patient-facing 说明。
+            </div>
+            <div className="mt-3 space-y-2">
+              <button
+                onClick={() => {
+                  // Step 1 starts with Nurse role
+                  setSettings({ userRole: 'Nurse' });
+                  seedUserCaseSpravatoTrdDenied();
+                }}
+                className="w-full px-4 py-2 bg-brand-600 text-white rounded-md text-sm font-semibold hover:bg-brand-700"
+              >
+                载入该案例（Nurse：创建/补齐 Case Card）
+              </button>
+              <button
+                onClick={() => {
+                  setSettings({ userRole: 'Doctor' });
+                  const id = seedUserCaseSpravatoTrdDenied();
+                  // jump hints are on the cards below
+                  location.hash = `#/evidence?caseId=${encodeURIComponent(id)}`;
+                }}
+                className="w-full px-4 py-2 bg-white border border-slate-300 rounded-md text-sm font-semibold hover:bg-slate-50"
+              >
+                Step 2：Doctor 去 Pin 证据（跳转 Evidence）
+              </button>
+              <button
+                onClick={() => {
+                  setSettings({ userRole: 'Admin' });
+                  const id = seedUserCaseSpravatoTrdDenied();
+                  location.hash = `#/auth?caseId=${encodeURIComponent(id)}`;
+                }}
+                className="w-full px-4 py-2 bg-white border border-slate-300 rounded-md text-sm font-semibold hover:bg-slate-50"
+              >
+                Step 3-4：Admin 生成 PA Pack/Appeal（跳转 Authorization）
+              </button>
+              <button
+                onClick={() => {
+                  setSettings({ userRole: 'Nurse' });
+                  const id = seedUserCaseSpravatoTrdDenied();
+                  location.hash = `#/clinical?caseId=${encodeURIComponent(id)}`;
+                }}
+                className="w-full px-4 py-2 bg-white border border-slate-300 rounded-md text-sm font-semibold hover:bg-slate-50"
+              >
+                Step 5：Nurse 去补 SOAP/MDM + QA（跳转 Clinical）
+              </button>
+            </div>
+            <div className="mt-3 text-[11px] text-slate-500">
+              说明：该 Demo 仅前端本地运行；角色切换为模拟协作，不会阻止编辑，只控制模板导入导出等能力。
             </div>
           </div>
 
