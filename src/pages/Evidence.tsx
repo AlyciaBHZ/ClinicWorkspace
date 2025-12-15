@@ -29,9 +29,11 @@ export const Evidence: React.FC = () => {
   useEffect(() => {
     const caseId = params.get('caseId');
     const evidenceId = params.get('evidenceId');
+    const q = params.get('q');
     if (caseId && cases.some((c) => c.id === caseId)) {
       setSelectedCaseId(caseId);
     }
+    if (q) setSearchTerm(q);
     if (evidenceId) {
       // allow render cycle to complete
       setTimeout(() => {

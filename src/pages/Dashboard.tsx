@@ -3,6 +3,8 @@ import { useStore } from '../lib/store';
 import { Link } from 'react-router-dom';
 import { ArrowRight, CheckCircle, Clock, FileText, AlertTriangle, ClipboardCheck, TrendingUp, Save } from 'lucide-react';
 import { computeCaseCompleteness, computeWorkspaceKpis } from '../lib/metrics';
+import { toPortalText } from '../lib/portalText';
+import { loadTourState, resetTourState, startDashboardTour } from '../lib/demoTour';
 
 const StatCard = ({ label, value, icon: Icon, color }: any) => (
   <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
@@ -17,7 +19,27 @@ const StatCard = ({ label, value, icon: Icon, color }: any) => (
 );
 
 export const Dashboard = () => {
-  const { cases, auditLog, seedDemoData, seedUserCaseSpravatoTrdDenied, clearAllLocalData, templates, setSettings } = useStore();
+  const {
+    cases,
+    auditLog,
+    seedDemoData,
+    seedUserCaseSpravatoTrdDenied,
+    runFullScenario,
+    resetScenario,
+    clearAllLocalData,
+    templates,
+    setSettings,
+    setCaseStatus,
+    updateCase,
+    generateForCase,
+    activeCaseId,
+    setActiveCaseId,
+    getCaseById,
+    getDocumentForCase,
+    setPrintJob,
+    showToast,
+    guidedDemo,
+  } = useStore();
 
   const activeCases = cases.filter((c) => !c.archivedAt);
   const pending = activeCases.filter(c => c.status === 'in_progress' || c.status === 'draft').length;
@@ -43,6 +65,32 @@ export const Dashboard = () => {
       .slice(0, 6);
   }, [activeCases, templates]);
 
+  const scenarioCaseId = guidedDemo.exampleCaseId;
+  const scenarioCase = getCaseById(scenarioCaseId);
+
+  const effectiveCaseId = activeCaseId ?? scenarioCaseId;
+  const activeDemoCase = getCaseById(effectiveCaseId);
+  const paDoc = activeDemoCase ? getDocumentForCase(activeDemoCase.id, 'pa_pack') : undefined;
+  const appealDoc = activeDemoCase ? getDocumentForCase(activeDemoCase.id, 'appeal_letter') : undefined;
+
+  const tourState = loadTourState();
+
+  const stepStatus = useMemo(() => {
+    const c = scenarioCase;
+    const s = guidedDemo.steps;
+    const step1 = c ? 'done' : s.step1;
+    const step2 = c && (c.pinnedEvidenceIds?.length ?? 0) >= 3 ? 'done' : s.step2;
+    const step3 = c && !!getDocumentForCase(c.id, 'pa_pack') ? 'done' : s.step3;
+    const step4 = c && !!getDocumentForCase(c.id, 'appeal_letter') ? 'done' : s.step4;
+    const step5 = c && (!!getDocumentForCase(c.id, 'soap_note') || !!getDocumentForCase(c.id, 'hpi_pe_mdm_note')) ? 'done' : s.step5;
+    return { step1, step2, step3, step4, step5 };
+  }, [scenarioCase, guidedDemo.steps, getDocumentForCase]);
+
+  const previewText = (md?: string) => {
+    if (!md) return '';
+    return md.split('\n').slice(0, 10).join('\n');
+  };
+
   return (
     <div className="space-y-8">
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
@@ -67,56 +115,190 @@ export const Dashboard = () => {
             </div>
           </div>
 
-          <div className="w-full max-w-sm bg-slate-50 border border-slate-200 rounded-xl p-4">
+          <div className="w-full max-w-sm bg-slate-50 border border-slate-200 rounded-xl p-4" data-tour="demo-card">
             <div className="text-sm font-semibold text-slate-900">演示脚本（Spravato TRD 拒付申诉）</div>
             <div className="text-xs text-slate-600 mt-2 leading-relaxed">
-              按照你提供的完整 User Case：Case Card → Evidence Pin → PA Pack → Appeal + 版本 → Clinical QA → Kanban 状态 → Patient-facing 说明。
+              场景播放器：固定 <span className="font-mono">exampleCaseId</span>，一键跑通 Case → Evidence Pin → PA Pack/Appeal（v1）→ 状态。
             </div>
-            <div className="mt-3 space-y-2">
-              <button
-                onClick={() => {
-                  // Step 1 starts with Nurse role
-                  setSettings({ userRole: 'Nurse' });
-                  seedUserCaseSpravatoTrdDenied();
-                }}
-                className="w-full px-4 py-2 bg-brand-600 text-white rounded-md text-sm font-semibold hover:bg-brand-700"
-              >
-                载入该案例（Nurse：创建/补齐 Case Card）
-              </button>
-              <button
-                onClick={() => {
-                  setSettings({ userRole: 'Doctor' });
-                  const id = seedUserCaseSpravatoTrdDenied();
-                  // jump hints are on the cards below
-                  location.hash = `#/evidence?caseId=${encodeURIComponent(id)}`;
-                }}
-                className="w-full px-4 py-2 bg-white border border-slate-300 rounded-md text-sm font-semibold hover:bg-slate-50"
-              >
-                Step 2：Doctor 去 Pin 证据（跳转 Evidence）
-              </button>
+
+            <div className="mt-3 grid grid-cols-1 gap-2">
               <button
                 onClick={() => {
                   setSettings({ userRole: 'Admin' });
-                  const id = seedUserCaseSpravatoTrdDenied();
-                  location.hash = `#/auth?caseId=${encodeURIComponent(id)}`;
+                  runFullScenario();
+                  setActiveCaseId(scenarioCaseId);
                 }}
-                className="w-full px-4 py-2 bg-white border border-slate-300 rounded-md text-sm font-semibold hover:bg-slate-50"
+                className="w-full px-4 py-2 bg-brand-600 text-white rounded-md text-sm font-semibold hover:bg-brand-700"
+                data-tour="run-full-scenario"
               >
-                Step 3-4：Admin 生成 PA Pack/Appeal（跳转 Authorization）
+                Run full scenario
               </button>
-              <button
-                onClick={() => {
-                  setSettings({ userRole: 'Nurse' });
-                  const id = seedUserCaseSpravatoTrdDenied();
-                  location.hash = `#/clinical?caseId=${encodeURIComponent(id)}`;
-                }}
-                className="w-full px-4 py-2 bg-white border border-slate-300 rounded-md text-sm font-semibold hover:bg-slate-50"
-              >
-                Step 5：Nurse 去补 SOAP/MDM + QA（跳转 Clinical）
-              </button>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => resetScenario()}
+                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm font-semibold hover:bg-slate-50"
+                >
+                  Reset scenario
+                </button>
+                <button
+                  onClick={() => {
+                    if (tourState.completed) resetTourState();
+                    startDashboardTour();
+                  }}
+                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm font-semibold hover:bg-slate-50"
+                >
+                  Start guided tour
+                </button>
+              </div>
             </div>
+
+            <div className="mt-4 border-t border-slate-200 pt-4" data-tour="stepper">
+              <div className="text-xs font-semibold text-slate-500 uppercase mb-2">Stepper</div>
+              <div className="space-y-2">
+                {[
+                  {
+                    key: 'step1',
+                    title: 'Step 1：Case Card（创建/补齐）',
+                    status: stepStatus.step1,
+                    go: () => {
+                      setSettings({ userRole: 'Nurse' });
+                      const id = seedUserCaseSpravatoTrdDenied();
+                      setActiveCaseId(id);
+                      location.hash = `#/cases?caseId=${encodeURIComponent(id)}`;
+                    },
+                    summary: scenarioCase ? `已创建：${scenarioCase.serviceOrDrug}` : 'Not started',
+                  },
+                  {
+                    key: 'step2',
+                    title: 'Step 2：Evidence Pin（>=3）',
+                    status: stepStatus.step2,
+                    go: () => {
+                      setSettings({ userRole: 'Doctor' });
+                      const id = seedUserCaseSpravatoTrdDenied();
+                      setActiveCaseId(id);
+                      location.hash = `#/evidence?caseId=${encodeURIComponent(id)}&q=${encodeURIComponent('esketamine TRD spravato')}`;
+                    },
+                    summary: scenarioCase ? `已 Pin：${scenarioCase.pinnedEvidenceIds.length} 条` : 'Not started',
+                  },
+                  {
+                    key: 'step3',
+                    title: 'Step 3：PA Pack（生成/版本）',
+                    status: stepStatus.step3,
+                    go: () => {
+                      setSettings({ userRole: 'Admin' });
+                      const id = seedUserCaseSpravatoTrdDenied();
+                      setActiveCaseId(id);
+                      location.hash = `#/auth?caseId=${encodeURIComponent(id)}&tab=pa`;
+                    },
+                    summary: paDoc?.versions?.[0] ? `已保存：${paDoc.versions[0].label}` : (paDoc ? '已生成（未保存版本）' : 'Not started'),
+                  },
+                  {
+                    key: 'step4',
+                    title: 'Step 4：Appeal（生成/版本/diff）',
+                    status: stepStatus.step4,
+                    go: () => {
+                      setSettings({ userRole: 'Doctor' });
+                      const id = seedUserCaseSpravatoTrdDenied();
+                      setActiveCaseId(id);
+                      location.hash = `#/auth?caseId=${encodeURIComponent(id)}&tab=appeal`;
+                    },
+                    summary: appealDoc?.versions?.[0] ? `已保存：${appealDoc.versions[0].label}` : (appealDoc ? '已生成（未保存版本）' : 'Not started'),
+                  },
+                  {
+                    key: 'step5',
+                    title: 'Step 5：Clinical QA（SOAP/MDM）',
+                    status: stepStatus.step5,
+                    go: () => {
+                      setSettings({ userRole: 'Nurse' });
+                      const id = seedUserCaseSpravatoTrdDenied();
+                      setActiveCaseId(id);
+                      location.hash = `#/clinical?caseId=${encodeURIComponent(id)}&preset=mdm`;
+                    },
+                    summary: '生成后点击 Mark addressed 写入 Audit Log',
+                  },
+                ].map((s) => (
+                  <div key={s.key} className="bg-white border border-slate-200 rounded-lg p-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="text-sm font-semibold text-slate-900">{s.title}</div>
+                        <div className="text-xs text-slate-500 mt-1">{s.summary}</div>
+                      </div>
+                      <div className="flex flex-col items-end gap-2 shrink-0">
+                        <span className={`text-[11px] px-2 py-0.5 rounded border ${
+                          s.status === 'done'
+                            ? 'bg-green-50 border-green-200 text-green-700'
+                            : 'bg-slate-50 border-slate-200 text-slate-600'
+                        }`}>
+                          {s.status === 'done' ? 'Done' : 'Not started'}
+                        </span>
+                        <button
+                          className="px-2 py-1 text-xs border border-slate-300 rounded hover:bg-slate-50"
+                          onClick={s.go}
+                        >
+                          Go
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-4 border-t border-slate-200 pt-4" data-tour="outputs-preview">
+              <div className="text-xs font-semibold text-slate-500 uppercase mb-2">Outputs preview（active case）</div>
+              <div className="space-y-3">
+                {[
+                  { label: 'PA Pack', doc: paDoc, tab: 'pa' as const },
+                  { label: 'Appeal Letter', doc: appealDoc, tab: 'appeal' as const },
+                ].map(({ label, doc, tab }) => (
+                  <div key={label} className="bg-white border border-slate-200 rounded-lg p-3">
+                    <div className="text-sm font-bold text-slate-900">{label}</div>
+                    <div className="text-[11px] text-slate-500 mt-1">
+                      {doc ? `updatedAt ${new Date(doc.updatedAt).toLocaleString()} • versions ${doc.versions?.length ?? 0}` : '尚未生成'}
+                    </div>
+                    <pre className="mt-2 text-[11px] bg-slate-50 border border-slate-200 rounded p-2 whitespace-pre-wrap max-h-28 overflow-auto">
+                      {doc ? previewText(doc.contentMd) : '—'}
+                    </pre>
+                    <div className="mt-2 flex gap-2">
+                      <button
+                        className="px-2 py-1 text-xs border border-slate-300 rounded hover:bg-slate-50"
+                        onClick={() => {
+                          if (!activeDemoCase) return;
+                          location.hash = `#/auth?caseId=${encodeURIComponent(activeDemoCase.id)}&tab=${tab}`;
+                        }}
+                        disabled={!doc || !activeDemoCase}
+                      >
+                        Open
+                      </button>
+                      <button
+                        className="px-2 py-1 text-xs border border-slate-300 rounded hover:bg-slate-50"
+                        onClick={async () => {
+                          if (!doc) return;
+                          await navigator.clipboard.writeText(toPortalText(doc.contentMd));
+                          showToast(`已复制 ${label}（Portal text）`, { kind: 'success' });
+                        }}
+                        disabled={!doc}
+                      >
+                        Copy for Portal
+                      </button>
+                      <button
+                        className="px-2 py-1 text-xs border border-slate-300 rounded hover:bg-slate-50"
+                        onClick={() => {
+                          if (!doc) return;
+                          setPrintJob({ docId: doc.id });
+                        }}
+                        disabled={!doc}
+                      >
+                        Export PDF
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             <div className="mt-3 text-[11px] text-slate-500">
-              说明：该 Demo 仅前端本地运行；角色切换为模拟协作，不会阻止编辑，只控制模板导入导出等能力。
+              说明：该 Demo 仅前端本地运行（localStorage）；角色切换为模拟协作；引用编号按 pinned evidence 顺序确定性生成。
             </div>
           </div>
 

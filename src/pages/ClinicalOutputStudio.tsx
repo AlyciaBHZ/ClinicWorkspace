@@ -50,6 +50,7 @@ export const ClinicalOutputStudio: React.FC = () => {
 
   const [params] = useSearchParams();
   const deepCaseId = params.get('caseId') ?? '';
+  const preset = params.get('preset') ?? '';
 
   const [clinicalType, setClinicalType] = useState<ClinicalType>('soap');
   const [selectedCaseId, setSelectedCaseId] = useState<string>(cases[0]?.id ?? '');
@@ -61,6 +62,12 @@ export const ClinicalOutputStudio: React.FC = () => {
       setSelectedCaseId(deepCaseId);
     }
   }, [deepCaseId, cases]);
+
+  React.useEffect(() => {
+    if (preset === 'mdm') setClinicalType('hpi');
+    if (preset === 'soap') setClinicalType('soap');
+    if (preset === 'avs') setClinicalType('avs');
+  }, [preset]);
 
   const kind = CLINICAL_KIND[clinicalType];
   const doc = activeCase ? getDocumentForCase(activeCase.id, kind) : undefined;
@@ -91,6 +98,16 @@ export const ClinicalOutputStudio: React.FC = () => {
     if (!doc) return;
     log({ actionType: 'export', entityType: 'Document', entityId: doc.id, summary: `Exported ${kind} via print` });
     window.print();
+  };
+
+  const handleQaAcknowledge = () => {
+    if (!doc) return;
+    log({
+      actionType: 'qa_ack',
+      entityType: 'Document',
+      entityId: doc.id,
+      summary: `QA acknowledged (${qa.length} items) for ${kind}`,
+    });
   };
 
   return (
@@ -218,7 +235,17 @@ export const ClinicalOutputStudio: React.FC = () => {
 
           <div className="xl:col-span-4 space-y-4">
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
-              <div className="text-xs font-semibold text-slate-500 uppercase mb-2">Documentation QA</div>
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-xs font-semibold text-slate-500 uppercase">Documentation QA</div>
+                <button
+                  onClick={handleQaAcknowledge}
+                  disabled={!doc}
+                  className="px-2 py-1 text-xs border border-slate-300 rounded hover:bg-slate-50 disabled:opacity-50"
+                  title="Record QA acknowledgment into Audit Log (demo governance)"
+                >
+                  Mark addressed
+                </button>
+              </div>
               {qa.length ? (
                 <div className="space-y-2">
                   {qa.map((x, idx) => (
@@ -231,6 +258,9 @@ export const ClinicalOutputStudio: React.FC = () => {
               ) : (
                 <div className="text-sm text-slate-500">No common gaps detected from Case Card fields.</div>
               )}
+              <div className="text-[11px] text-slate-500 mt-3">
+                Tip: 这里的 QA 只做 demo 规则提示，点击 “Mark addressed” 会写入审计日志，方便演示治理与协作闭环。
+              </div>
             </div>
 
             <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">

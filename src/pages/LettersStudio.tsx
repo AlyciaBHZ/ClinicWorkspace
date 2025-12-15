@@ -4,14 +4,16 @@ import { useStore } from '../lib/store';
 import type { DocumentKind, Template } from '../lib/schema';
 import { MarkdownEditor } from '../components/editor/MarkdownEditor';
 import { v4 as uuidv4 } from 'uuid';
+import { useSearchParams } from 'react-router-dom';
 
-type LetterType = 'referral' | 'sick_note' | 'disability' | 'pa_support' | 'avs_patient';
+type LetterType = 'referral' | 'sick_note' | 'disability' | 'pa_support' | 'patient_summary' | 'avs_patient';
 
 const LETTER_KIND: Record<LetterType, DocumentKind> = {
   referral: 'referral_letter',
   sick_note: 'sick_note',
   disability: 'disability_letter',
   pa_support: 'pa_support_letter',
+  patient_summary: 'patient_summary',
   avs_patient: 'avs',
 };
 
@@ -40,6 +42,8 @@ export const LettersStudio: React.FC = () => {
     log,
   } = useStore();
 
+  const [params] = useSearchParams();
+
   const [mode, setMode] = useState<'case' | 'free'>('case');
   const [letterType, setLetterType] = useState<LetterType>('referral');
   const [selectedCaseId, setSelectedCaseId] = useState<string>(cases[0]?.id ?? '');
@@ -62,6 +66,7 @@ export const LettersStudio: React.FC = () => {
       sick_note: 'tmpl-letters-sick-note',
       disability: 'tmpl-letters-disability',
       pa_support: 'tmpl-letters-pa-support',
+      patient_summary: 'tmpl-letters-patient-treatment-summary',
       avs_patient: 'tmpl-avs-standard',
     };
     const id = byType[letterType];
@@ -71,6 +76,19 @@ export const LettersStudio: React.FC = () => {
 
   const [templateId, setTemplateId] = useState<string>(defaultTemplateId);
   React.useEffect(() => setTemplateId(defaultTemplateId), [defaultTemplateId]);
+
+  React.useEffect(() => {
+    const caseId = params.get('caseId');
+    const letter = params.get('letter');
+    if (caseId && cases.some((c) => c.id === caseId)) {
+      setSelectedCaseId(caseId);
+      setMode('case');
+    }
+    if (letter) {
+      const asType = letter as LetterType;
+      if (LETTER_KIND[asType]) setLetterType(asType);
+    }
+  }, [params, cases]);
 
   const kind = LETTER_KIND[letterType];
   const [freeDocId, setFreeDocId] = useState<string>('');
@@ -240,6 +258,7 @@ export const LettersStudio: React.FC = () => {
               <option value="sick_note">Sick Note</option>
               <option value="disability">Disability / Accommodation Letter</option>
               <option value="pa_support">Prior Auth Support Letter</option>
+              <option value="patient_summary">Patient-facing Treatment Summary</option>
               <option value="avs_patient">Patient-facing AVS（患者版说明）</option>
             </select>
           </div>

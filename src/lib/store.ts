@@ -13,12 +13,13 @@ import type {
   LocalDataExport,
   Template,
 } from './schema';
-import { APP_DATA_VERSION, DEFAULT_TEMPLATES } from './constants';
+import { APP_DATA_VERSION, DEFAULT_TEMPLATES, EXAMPLE_CASE_ID } from './constants';
 import {
   generateAppealLetter,
   generateAvs,
   generatePaPack,
   generatePaSupportLetter,
+  generatePatientTreatmentSummary,
   generateDisabilityLetter,
   generateHpiPeMdmNote,
   generateReferralLetter,
@@ -40,6 +41,22 @@ interface AppState {
   evidenceCustom: EvidenceItem[];
   documents: DocumentArtifact[];
   auditLog: AuditLogEntry[];
+
+  // UI state (frontend-only)
+  activeCaseId?: string;
+  setActiveCaseId: (id?: string) => void;
+  toast?: { message: string; kind?: 'success' | 'info' | 'warning' | 'error'; durationMs?: number };
+  showToast: (message: string, opts?: { kind?: 'success' | 'info' | 'warning' | 'error'; durationMs?: number }) => void;
+  clearToast: () => void;
+  printJob?: { docId: string };
+  setPrintJob: (job: { docId: string }) => void;
+  clearPrintJob: () => void;
+
+  guidedDemo: {
+    exampleCaseId: string;
+    steps: Record<'step1' | 'step2' | 'step3' | 'step4' | 'step5', 'not_started' | 'done'>;
+    lastRunAt?: number;
+  };
 
   // Derived-ish helpers
   getEvidenceAll: () => EvidenceItem[];
@@ -80,6 +97,8 @@ interface AppState {
   // Data management
   seedDemoData: () => void;
   seedUserCaseSpravatoTrdDenied: () => string;
+  runFullScenario: () => void;
+  resetScenario: () => void;
   clearAllLocalData: () => void;
   exportAllData: () => LocalDataExport;
   importAllData: (data: LocalDataExport) => void;
@@ -135,6 +154,20 @@ export const useStore = create<AppState>()(
       evidenceCustom: [],
       documents: [],
       auditLog: [],
+      activeCaseId: undefined,
+      toast: undefined,
+      printJob: undefined,
+      guidedDemo: {
+        exampleCaseId: EXAMPLE_CASE_ID,
+        steps: {
+          step1: 'not_started',
+          step2: 'not_started',
+          step3: 'not_started',
+          step4: 'not_started',
+          step5: 'not_started',
+        },
+        lastRunAt: undefined,
+      },
 
       getEvidenceAll: () => {
         const base = (evidenceBaseJson as EvidenceItem[]).map((e) => ({ ...e, isCustom: false }));
@@ -151,6 +184,17 @@ export const useStore = create<AppState>()(
         set((state) => ({
           settings: { ...state.settings, ...s },
         })),
+
+      setActiveCaseId: (id) => set(() => ({ activeCaseId: id })),
+
+      showToast: (message, opts) =>
+        set(() => ({
+          toast: { message, kind: opts?.kind ?? 'info', durationMs: opts?.durationMs },
+        })),
+      clearToast: () => set(() => ({ toast: undefined })),
+
+      setPrintJob: (job) => set(() => ({ printJob: job })),
+      clearPrintJob: () => set(() => ({ printJob: undefined })),
 
       log: (entry) =>
         set((state) => ({
@@ -259,15 +303,15 @@ export const useStore = create<AppState>()(
       toggleEvidencePin: (caseId, evidenceId) => {
         const c = get().cases.find((x) => x.id === caseId);
         if (!c) return;
-        const pinned = new Set(c.pinnedEvidenceIds ?? []);
-        if (pinned.has(evidenceId)) pinned.delete(evidenceId);
-        else pinned.add(evidenceId);
-        get().updateCase(caseId, { pinnedEvidenceIds: Array.from(pinned) });
+        const current = c.pinnedEvidenceIds ?? [];
+        const exists = current.includes(evidenceId);
+        const next = exists ? current.filter((id) => id !== evidenceId) : [...current, evidenceId];
+        get().updateCase(caseId, { pinnedEvidenceIds: next });
         get().log({
           actionType: 'edit',
           entityType: 'Evidence',
           entityId: evidenceId,
-          summary: `${pinned.has(evidenceId) ? 'Pinned' : 'Unpinned'} evidence to case`,
+          summary: `${exists ? 'Unpinned' : 'Pinned'} evidence to case`,
         });
       },
 
@@ -411,7 +455,10 @@ export const useStore = create<AppState>()(
         if (!c) throw new Error('Case not found');
         const templates = get().templates;
         const evidenceAll = get().getEvidenceAll();
-        const pins = evidenceAll.filter((e) => c.pinnedEvidenceIds.includes(e.id));
+        const pinIndex = new Map<string, number>((c.pinnedEvidenceIds ?? []).map((id, idx) => [id, idx]));
+        const pins = evidenceAll
+          .filter((e) => pinIndex.has(e.id))
+          .sort((a, b) => (pinIndex.get(a.id)! - pinIndex.get(b.id)!));
 
         const generated =
           kind === 'pa_pack'
@@ -420,6 +467,8 @@ export const useStore = create<AppState>()(
               ? generateAppealLetter(c, templates, pins, opts?.payerStyle, opts?.templateId)
               : kind === 'pa_support_letter'
                 ? generatePaSupportLetter(c, templates, pins, opts?.templateId)
+                : kind === 'patient_summary'
+                  ? generatePatientTreatmentSummary(c, templates, opts?.templateId)
                 : kind === 'referral_letter'
                   ? generateReferralLetter(c, templates, opts?.templateId)
                   : kind === 'sick_note'
@@ -546,18 +595,16 @@ export const useStore = create<AppState>()(
       },
 
       seedUserCaseSpravatoTrdDenied: () => {
-        // Avoid duplicates by matching service + payer + TRD
-        const existing = get().cases.find(
-          (c) =>
-            !c.archivedAt &&
-            c.serviceOrDrug.toLowerCase().includes('spravato') &&
-            (c.payer?.payerName ?? '').toLowerCase() === 'aetna' &&
-            c.diagnosis.toLowerCase().includes('treatment-resistant'),
-        );
-        if (existing) return existing.id;
-
         const baseNow = now();
-        const caseId = get().createCase({
+        const caseId = EXAMPLE_CASE_ID;
+        const existing = get().cases.find((c) => c.id === caseId);
+        if (existing) return caseId;
+
+        const created: CaseCard = {
+          ...blankCase(),
+          id: caseId,
+          createdAt: baseNow,
+          updatedAt: baseNow,
           specialty: 'Psychiatry',
           diagnosis: 'Major Depressive Disorder, recurrent. Treatment-resistant depression',
           serviceOrDrug: 'Spravato (esketamine) nasal spray',
@@ -602,6 +649,14 @@ export const useStore = create<AppState>()(
           ],
           status: 'denied',
           pinnedEvidenceIds: ['ev-spravato-001', 'ev-spravato-002', 'ev-spravato-003', 'ev-spravato-004'],
+        };
+
+        set((state) => ({ cases: [created, ...state.cases] }));
+        get().log({
+          actionType: 'create',
+          entityType: 'Case',
+          entityId: created.id,
+          summary: `Created case: ${created.serviceOrDrug || '(untitled)'}`,
         });
 
         get().log({
@@ -610,6 +665,67 @@ export const useStore = create<AppState>()(
           summary: `Seeded user case: Spravato TRD denied (Aetna) — ${caseId}`,
         });
         return caseId;
+      },
+
+      runFullScenario: () => {
+        const { seedDemoData, seedUserCaseSpravatoTrdDenied, setActiveCaseId, setCaseStatus, generateForCase, saveDocumentVersion, showToast } = get();
+
+        if (get().cases.length === 0) seedDemoData();
+
+        const exampleId = seedUserCaseSpravatoTrdDenied();
+        setActiveCaseId(exampleId);
+
+        // Pin 3 evidence using tags: #TRD #esketamine/#spravato
+        const all = get().getEvidenceAll();
+        const hasTag = (e: EvidenceItem, tag: string) => (e.tags ?? []).some((t) => t.toLowerCase() === tag.toLowerCase());
+        const matches = all.filter(
+          (e) =>
+            e.specialty.toLowerCase() === 'psychiatry' &&
+            hasTag(e, 'trd') &&
+            (hasTag(e, 'esketamine') || hasTag(e, 'spravato')),
+        );
+        const pick = matches.slice(0, 3).map((e) => e.id);
+        if (pick.length > 0) get().updateCase(exampleId, { pinnedEvidenceIds: pick });
+
+        const paId = generateForCase(exampleId, 'pa_pack', {
+          templateId: 'tmpl-auth-pa-pack-psychiatry-spravato-commercial',
+        });
+        saveDocumentVersion(paId, 'v1');
+
+        const appealId = generateForCase(exampleId, 'appeal_letter', {
+          templateId: 'tmpl-auth-appeal-aetna-formal',
+        });
+        saveDocumentVersion(appealId, 'v1');
+
+        setCaseStatus(exampleId, 'denied');
+
+        set((state) => ({
+          guidedDemo: {
+            ...state.guidedDemo,
+            exampleCaseId: EXAMPLE_CASE_ID,
+            steps: { step1: 'done', step2: 'done', step3: 'done', step4: 'done', step5: 'not_started' },
+            lastRunAt: now(),
+          },
+        }));
+
+        showToast('Run full scenario 完成：PA Pack/Appeal 已生成并保存 v1，状态已设置为 denied。', { kind: 'success' });
+      },
+
+      resetScenario: () => {
+        const exampleId = EXAMPLE_CASE_ID;
+        set((state) => ({
+          cases: state.cases.filter((c) => c.id !== exampleId),
+          documents: state.documents.filter((d) => d.caseId !== exampleId),
+          activeCaseId: undefined,
+          guidedDemo: {
+            ...state.guidedDemo,
+            exampleCaseId: EXAMPLE_CASE_ID,
+            steps: { step1: 'not_started', step2: 'not_started', step3: 'not_started', step4: 'not_started', step5: 'not_started' },
+            lastRunAt: undefined,
+          },
+        }));
+        get().log({ actionType: 'clear', entityType: 'System', summary: `Reset scenario: ${exampleId}` });
+        get().showToast('Reset scenario 完成：已移除示例 Case 与相关文档。', { kind: 'info' });
       },
 
       clearAllLocalData: () => {
@@ -670,6 +786,8 @@ export const useStore = create<AppState>()(
         evidenceCustom: state.evidenceCustom,
         documents: state.documents,
         auditLog: state.auditLog,
+        activeCaseId: state.activeCaseId,
+        guidedDemo: state.guidedDemo,
       }),
     },
   ),

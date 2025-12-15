@@ -400,6 +400,31 @@ export function generatePaSupportLetter(
   };
 }
 
+export function generatePatientTreatmentSummary(
+  c: CaseCard,
+  templates: Template[],
+  templateId?: string,
+): GeneratedDocument {
+  const template =
+    (templateId ? templates.find((t) => t.id === templateId) : undefined) ??
+    templates.find((t) => t.id === 'tmpl-letters-patient-treatment-summary') ??
+    templates.find((t) => t.category === 'Letters templates')!;
+
+  const missing = getMissingInfo(c, template);
+  const ctx: Record<string, string> = {
+    serviceOrDrug: c.serviceOrDrug,
+    duration: c.duration,
+    monitoringPlan: c.monitoringPlan?.trim() ? c.monitoringPlan.trim() : '[ADD MONITORING PLAN]',
+  };
+  return {
+    title: `Patient-facing Summary — ${c.serviceOrDrug || 'Case'}`,
+    contentMd: renderTemplate(template.content, ctx),
+    citations: [],
+    missingInfoChecklist: missing,
+    riskWarnings: riskWarningsMd(),
+  };
+}
+
 export function generateHpiPeMdmNote(
   c: CaseCard,
   transcript?: string,

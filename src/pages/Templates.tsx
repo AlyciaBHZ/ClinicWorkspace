@@ -102,29 +102,29 @@ export const Templates: React.FC = () => {
               >
                 <Plus className="w-4 h-4" /> 新建
               </button>
-              <button
-                onClick={handleExport}
-                className="px-3 py-2 border border-slate-300 rounded-md text-sm font-semibold hover:bg-slate-50 flex items-center gap-2"
-                disabled={!canImportExport}
-                title={!canImportExport ? 'Admin only' : 'Export templates JSON'}
-              >
-                <Download className="w-4 h-4" /> 导出
-              </button>
-              <label
-                className={`px-3 py-2 border border-slate-300 rounded-md text-sm font-semibold hover:bg-slate-50 flex items-center gap-2 cursor-pointer ${
-                  !canImportExport ? 'opacity-50 cursor-not-allowed' : ''
-                }`}
-                title={!canImportExport ? 'Admin only' : 'Import templates JSON'}
-              >
-                <Upload className="w-4 h-4" /> 导入
-                <input
-                  type="file"
-                  accept="application/json"
-                  className="hidden"
-                  disabled={!canImportExport}
-                  onChange={(e) => handleImport(e.target.files?.[0] ?? null)}
-                />
-              </label>
+              {canImportExport ? (
+                <>
+                  <button
+                    onClick={handleExport}
+                    className="px-3 py-2 border border-slate-300 rounded-md text-sm font-semibold hover:bg-slate-50 flex items-center gap-2"
+                    title="Export templates JSON"
+                  >
+                    <Download className="w-4 h-4" /> 导出
+                  </button>
+                  <label
+                    className="px-3 py-2 border border-slate-300 rounded-md text-sm font-semibold hover:bg-slate-50 flex items-center gap-2 cursor-pointer"
+                    title="Import templates JSON"
+                  >
+                    <Upload className="w-4 h-4" /> 导入
+                    <input
+                      type="file"
+                      accept="application/json"
+                      className="hidden"
+                      onChange={(e) => handleImport(e.target.files?.[0] ?? null)}
+                    />
+                  </label>
+                </>
+              ) : null}
             </div>
           </div>
           <div className="mt-3">
@@ -191,14 +191,15 @@ export const Templates: React.FC = () => {
                   >
                     Duplicate
                   </button>
-                  <button
-                    className="px-3 py-2 bg-red-50 text-red-600 border border-red-200 rounded-md text-sm font-semibold hover:bg-red-100 flex items-center gap-2"
-                    onClick={() => deleteTemplate(selected.id)}
-                    disabled={!canDelete}
-                    title={!canDelete ? 'Admin only' : 'Delete template'}
-                  >
-                    <Trash2 className="w-4 h-4" /> Delete
-                  </button>
+                  {canDelete ? (
+                    <button
+                      className="px-3 py-2 bg-red-50 text-red-600 border border-red-200 rounded-md text-sm font-semibold hover:bg-red-100 flex items-center gap-2"
+                      onClick={() => deleteTemplate(selected.id)}
+                      title="Delete template"
+                    >
+                      <Trash2 className="w-4 h-4" /> Delete
+                    </button>
+                  ) : null}
                 </div>
               </div>
 

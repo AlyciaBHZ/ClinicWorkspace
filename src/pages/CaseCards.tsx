@@ -5,7 +5,7 @@ import { useStore } from '../lib/store';
 import { CASE_STATUS_LABELS, RISK_FACTOR_LABELS } from '../lib/constants';
 import type { CaseCard, CaseStatus, RiskFactorKey } from '../lib/schema';
 import { computeCaseCompleteness } from '../lib/metrics';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 
 function looksLikePHI(s: string): boolean {
   const email = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i;
@@ -49,10 +49,21 @@ const CaseModal: React.FC<{
   value: EditableCase;
   onSave: (v: EditableCase) => void;
   phiSafetyMode: boolean;
-}> = ({ open, onClose, value, onSave, phiSafetyMode }) => {
+  focusField?: string | null;
+}> = ({ open, onClose, value, onSave, phiSafetyMode, focusField }) => {
   const [draft, setDraft] = useState<EditableCase>(value);
 
   React.useEffect(() => setDraft(value), [value, open]);
+  React.useEffect(() => {
+    if (!open) return;
+    if (!focusField) return;
+    const t = window.setTimeout(() => {
+      const el = document.querySelector(`[data-field="${focusField}"]`) as HTMLElement | null;
+      el?.focus?.();
+      el?.scrollIntoView?.({ block: 'center' });
+    }, 0);
+    return () => window.clearTimeout(t);
+  }, [open, focusField]);
   if (!open) return null;
 
   const warn = phiSafetyMode && looksLikePHI(JSON.stringify(draft));
@@ -111,6 +122,7 @@ const CaseModal: React.FC<{
                   value={draft.diagnosis}
                   onChange={(e) => setDraft((d) => ({ ...d, diagnosis: e.target.value }))}
                   placeholder="ICD-10 or free text (no PHI)"
+                  data-field="diagnosis"
                 />
               </div>
 
@@ -121,6 +133,7 @@ const CaseModal: React.FC<{
                     className="w-full p-2 border rounded-md font-semibold"
                     value={draft.serviceOrDrug}
                     onChange={(e) => setDraft((d) => ({ ...d, serviceOrDrug: e.target.value }))}
+                    data-field="serviceOrDrug"
                   />
                 </div>
                 <div>
@@ -130,6 +143,7 @@ const CaseModal: React.FC<{
                     value={draft.severity ?? ''}
                     onChange={(e) => setDraft((d) => ({ ...d, severity: e.target.value }))}
                     placeholder="e.g., PHQ-9: 22"
+                    data-field="severity"
                   />
                 </div>
               </div>
@@ -137,15 +151,15 @@ const CaseModal: React.FC<{
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Dosage</label>
-                  <input className="w-full p-2 border rounded-md" value={draft.dosage} onChange={(e) => setDraft((d) => ({ ...d, dosage: e.target.value }))} />
+                  <input className="w-full p-2 border rounded-md" value={draft.dosage} onChange={(e) => setDraft((d) => ({ ...d, dosage: e.target.value }))} data-field="dosage" />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Frequency</label>
-                  <input className="w-full p-2 border rounded-md" value={draft.frequency} onChange={(e) => setDraft((d) => ({ ...d, frequency: e.target.value }))} />
+                  <input className="w-full p-2 border rounded-md" value={draft.frequency} onChange={(e) => setDraft((d) => ({ ...d, frequency: e.target.value }))} data-field="frequency" />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Duration</label>
-                  <input className="w-full p-2 border rounded-md" value={draft.duration} onChange={(e) => setDraft((d) => ({ ...d, duration: e.target.value }))} />
+                  <input className="w-full p-2 border rounded-md" value={draft.duration} onChange={(e) => setDraft((d) => ({ ...d, duration: e.target.value }))} data-field="duration" />
                 </div>
               </div>
             </div>
@@ -203,6 +217,7 @@ const CaseModal: React.FC<{
                       value={draft.visitDate ?? ''}
                       onChange={(e) => setDraft((d) => ({ ...d, visitDate: e.target.value }))}
                       placeholder="2025-12-10"
+                      data-field="visitDate"
                     />
                   </div>
                   <div>
@@ -212,6 +227,7 @@ const CaseModal: React.FC<{
                       value={draft.payerReferenceNumber ?? ''}
                       onChange={(e) => setDraft((d) => ({ ...d, payerReferenceNumber: e.target.value }))}
                       placeholder="Portal ref # (no PHI)"
+                      data-field="payerReferenceNumber"
                     />
                   </div>
                   <div className="md:col-span-2">
@@ -222,6 +238,7 @@ const CaseModal: React.FC<{
                       value={draft.functionalImpairment ?? ''}
                       onChange={(e) => setDraft((d) => ({ ...d, functionalImpairment: e.target.value }))}
                       placeholder="Describe functional impact (work/school/ADLs) without identifiers"
+                      data-field="functionalImpairment"
                     />
                   </div>
                   <div className="md:col-span-2">
@@ -232,6 +249,7 @@ const CaseModal: React.FC<{
                       value={draft.mseSummary ?? ''}
                       onChange={(e) => setDraft((d) => ({ ...d, mseSummary: e.target.value }))}
                       placeholder="Key MSE points (de-identified)"
+                      data-field="mseSummary"
                     />
                   </div>
                   <div className="md:col-span-2">
@@ -242,6 +260,7 @@ const CaseModal: React.FC<{
                       value={draft.monitoringPlan ?? ''}
                       onChange={(e) => setDraft((d) => ({ ...d, monitoringPlan: e.target.value }))}
                       placeholder="Observation, vitals, safety plan, follow-up timing (no PHI)"
+                      data-field="monitoringPlan"
                     />
                   </div>
                 </div>
@@ -328,6 +347,7 @@ const CaseModal: React.FC<{
                           payer: { ...(d.payer ?? { payerName: '' }), payerName: e.target.value },
                         }))
                       }
+                      data-field="payer.payerName"
                     />
                   </div>
                   <div>
@@ -341,6 +361,7 @@ const CaseModal: React.FC<{
                           payer: { ...(d.payer ?? { payerName: '' }), planType: e.target.value },
                         }))
                       }
+                      data-field="payer.planType"
                     />
                   </div>
                   <div>
@@ -354,6 +375,7 @@ const CaseModal: React.FC<{
                           payer: { ...(d.payer ?? { payerName: '' }), denialReasonCode: e.target.value },
                         }))
                       }
+                      data-field="payer.denialReasonCode"
                     />
                   </div>
                   <div className="md:col-span-2">
@@ -368,6 +390,7 @@ const CaseModal: React.FC<{
                           payer: { ...(d.payer ?? { payerName: '' }), denialText: e.target.value },
                         }))
                       }
+                      data-field="payer.denialText"
                     />
                   </div>
                 </div>
@@ -431,6 +454,7 @@ const CaseModal: React.FC<{
 
 export const CaseCards: React.FC = () => {
   const { cases, settings, createCase, updateCase, duplicateCase, archiveCase, restoreCase, templates } = useStore();
+  const [params] = useSearchParams();
   const [q, setQ] = useState('');
   const [showArchived, setShowArchived] = useState(false);
   const [statusFilter, setStatusFilter] = useState<CaseStatus | ''>('');
@@ -438,6 +462,23 @@ export const CaseCards: React.FC = () => {
 
   const [modalOpen, setModalOpen] = useState(false);
   const [modalValue, setModalValue] = useState<EditableCase>(makeBlankDraft());
+  const [modalFocusField, setModalFocusField] = useState<string | null>(null);
+
+  React.useEffect(() => {
+    const caseId = params.get('caseId');
+    const edit = params.get('edit');
+    const focus = params.get('focus');
+    if (caseId && cases.some((c) => c.id === caseId)) {
+      setSelectedId(caseId);
+      if (edit === '1') {
+        const c = cases.find((x) => x.id === caseId)!;
+        const { id, createdAt, updatedAt, ...rest } = c;
+        setModalValue({ id, ...rest });
+        setModalFocusField(focus);
+        setModalOpen(true);
+      }
+    }
+  }, [params, cases]);
 
   const filtered = useMemo(() => {
     const query = q.trim().toLowerCase();
@@ -461,12 +502,14 @@ export const CaseCards: React.FC = () => {
 
   const openNew = () => {
     setModalValue(makeBlankDraft());
+    setModalFocusField(null);
     setModalOpen(true);
   };
 
   const openEdit = (c: CaseCard) => {
     const { id, createdAt, updatedAt, ...rest } = c;
     setModalValue({ id, ...rest });
+    setModalFocusField(null);
     setModalOpen(true);
   };
 
@@ -721,6 +764,7 @@ export const CaseCards: React.FC = () => {
         value={modalValue}
         onSave={onSave}
         phiSafetyMode={settings.phiSafetyMode}
+        focusField={modalFocusField}
       />
     </div>
   );

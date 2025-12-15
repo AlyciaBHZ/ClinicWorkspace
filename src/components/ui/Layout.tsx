@@ -5,6 +5,8 @@ import {
   Search, Library, History, Settings, Activity 
 } from 'lucide-react';
 import { useStore } from '../../lib/store';
+import { ToastHost } from './ToastHost';
+import { PrintModal } from '../print/PrintModal';
 
 const NavItem = ({ to, icon: Icon, label }: { to: string, icon: any, label: string }) => {
   return (
@@ -115,6 +117,9 @@ export const Layout = () => {
           <Outlet />
         </div>
       </main>
+
+      <ToastHost />
+      <PrintModal />
     </div>
   );
 };

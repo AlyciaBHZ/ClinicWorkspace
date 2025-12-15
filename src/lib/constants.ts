@@ -2,6 +2,9 @@ import type { RiskFactorKey, Template } from './schema';
 
 export const APP_DATA_VERSION = 1;
 
+// Fixed demo case id for Guided Demo scenario player
+export const EXAMPLE_CASE_ID = 'exampleCaseId';
+
 export const RISK_FACTOR_LABELS: Record<RiskFactorKey, string> = {
   suicidality: 'Suicidality / self-harm risk',
   hospitalizationHistory: 'Psychiatric hospitalization history',

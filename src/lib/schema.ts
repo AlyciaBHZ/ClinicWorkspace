@@ -120,6 +120,7 @@ export type DocumentKind =
   | 'sick_note'
   | 'disability_letter'
   | 'pa_support_letter'
+  | 'patient_summary'
   | 'soap_note'
   | 'hpi_pe_mdm_note'
   | 'avs';
@@ -162,6 +163,7 @@ export type AuditActionType =
   | 'duplicate'
   | 'archive'
   | 'generate'
+  | 'qa_ack'
   | 'save_version'
   | 'status_change'
   | 'export'
