@@ -1,0 +1,22 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* App-wide defaults */
+html,
+body,
+#root {
+  height: 100%;
+}
+
+/* Print: hide chrome, keep content readable */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: white !important;
+  }
+}
+
+

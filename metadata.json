@@ -1,0 +1,5 @@
+{
+  "name": "Clinic Workspace",
+  "description": "A standalone, offline-first clinical productivity suite for case management, prior authorization generation, and clinical documentation.",
+  "requestFramePermissions": []
+}
